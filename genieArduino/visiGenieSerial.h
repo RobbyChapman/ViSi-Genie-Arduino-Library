@@ -1,4 +1,4 @@
-/////////////////////// GenieArduino 06/10/2015 ///////////////////////
+/////////////////////// visiGenieSerial 06/10/2015 ///////////////////////
 //
 //      Library to utilize the 4D Systems Genie interface to displays
 //      that have been created using the Visi-Genie creator platform.
@@ -23,39 +23,45 @@
 //
 //      Copyright (c) 2012-2013 4D Systems Pty Ltd, Sydney, Australia
 /*********************************************************************
- * This file is part of genieArduino:
- *    genieArduino is free software: you can redistribute it and/or modify
+ * This file is part of visiGenieSerial:
+ *    visiGenieSerial is free software: you can redistribute it and/or modify
  *    it under the terms of the GNU Lesser General Public License as
  *    published by the Free Software Foundation, either version 3 of the
  *    License, or (at your option) any later version.
  *
- *    genieArduino is distributed in the hope that it will be useful,
+ *    visiGenieSerial is distributed in the hope that it will be useful,
  *    but WITHOUT ANY WARRANTY; without even the implied warranty of
  *    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *    GNU Lesser General Public License for more details.
  *
  *    You should have received a copy of the GNU Lesser General Public
- *    License along with genieArduino.
+ *    License along with visiGenieSerial.
  *    If not, see <http://www.gnu.org/licenses/>.
  *********************************************************************/
-#if defined(ARDUINO) && ARDUINO >= 100
-#include "Arduino.h"
-#else
-#include "WProgram.h"
+
+/* Is this an Arduino board? if so, set to 1. For other boards like nrf52, Tiva launchpad, MSP, set to 0 */
+#define ARDUINO_BASED 1
+/* If you are using an Arduino based board, or old school Wiring, include those headers, else skip */
+#if (ARDUINO_BASED == 1)
+	#if defined(ARDUINO) && ARDUINO >= 100
+		#include "Arduino.h"
+	#else
+		#include "WProgram.h"
+    #endif
 #endif
 
 #include <inttypes.h>
 
 #include <stdint.h>
 
-#ifndef genieArduino_h
-#define genieArduino_h
+#ifndef visiGenieSerial_h
+#define visiGenieSerial_h
 
 #undef GENIE_DEBUG
 
-#define GENIE_VERSION    "GenieArduino 06-10-2015"
+#define GENIE_VERSION    "VisiGenieSerial 05-01-2017"
 
-// Genie commands & replys:
+// Genie commands & replies:
 
 #define GENIE_ACK               0x06
 #define GENIE_NAK               0x15
@@ -115,23 +121,39 @@
 #define GENIE_OBJ_COLORPICKER   32
 #define GENIE_OBJ_USERBUTTON    33
 
-// Structure to store replys returned from a display
+// Structure to store replies returned from a display
 
 #define GENIE_FRAME_SIZE        6
 
-struct FrameReportObj {
+/* Following 4D's User*.* convention. A users config implements the hardware/software configurations, in this case UART
+   and RTC based functions. I opted to conform to Arduino's Serial interface && millis function to make the port easier.
+   The idea is that the consumer will implement their own read/write/available functions for UART, and use whatever
+   mechanism available for uptime. */
+typedef bool     (*UserUartAvailFn)(void);
+typedef uint8_t  (*UserUartReadFn)(void);
+typedef void     (*UserUartWriteFn)(uint32_t val);
+typedef uint32_t (*UserRtcMillisFn)(void);
+
+typedef struct UserApiConfig {
+	UserUartAvailFn  available;
+	UserUartReadFn   read;
+	UserUartWriteFn  write;
+	UserRtcMillisFn  millis;
+} UserApiConfig;
+
+typedef struct FrameReportObj {
     uint8_t        cmd;
     uint8_t        object;
     uint8_t        index;
     uint8_t        data_msb;
     uint8_t        data_lsb;
-};
+} FrameReportObj;
 
-struct MagicReportHeader {
+typedef struct MagicReportHeader {
     uint8_t         cmd;
     uint8_t         index;
     uint8_t         length;
-};
+} MagicReportHeader;
 
 /////////////////////////////////////////////////////////////////////
 // The Genie frame definition
@@ -145,21 +167,21 @@ struct MagicReportHeader {
 //
 //    both methods get the same byte
 //
-union genieFrame {
+typedef union GenieFrame {
     uint8_t             bytes[GENIE_FRAME_SIZE];
     FrameReportObj      reportObject;
-};
+} GenieFrame;
 
 #define MAX_GENIE_EVENTS    16    // MUST be a power of 2
 #define MAX_GENIE_FATALS    10
 #define MAX_LINK_STATES     20
 
-struct EventQueueStruct {
-    genieFrame    frames[MAX_GENIE_EVENTS];
+typedef struct EventQueueStruct {
+    GenieFrame    frames[MAX_GENIE_EVENTS];
     uint8_t        rd_index;
     uint8_t        wr_index;
     uint8_t        n_events;
-};
+} EventQueueStruct;
 
 typedef void        (*UserEventHandlerPtr) (void);
 typedef void        (*UserBytePtr)(uint8_t, uint8_t);
@@ -169,10 +191,7 @@ typedef void        (*UserDoubleBytePtr)(uint8_t, uint8_t);
 // User API functions
 // These function prototypes are the user API to the library
 //
-class Genie {
-
-public:
-    Genie();
+	void        initGenieWithConfig (UserApiConfig *config);
     void        Begin               (Stream &serial);
     bool        ReadObject          (uint16_t object, uint16_t index);
     uint16_t    WriteObject         (uint16_t object, uint16_t index, uint16_t data);
@@ -210,68 +229,6 @@ public:
 
     uint8_t     GetNextByte         (void);
     uint16_t    GetNextDoubleByte   (void);
-
-private:
-    void        FlushEventQueue     (void);
-    void        handleError         (void);
-    void        SetLinkState        (uint16_t newstate);
-    uint16_t    GetLinkState        (void);
-    bool        EnqueueEvent        (uint8_t * data);
-    uint8_t     Getchar             (void);
-    uint16_t    GetcharSerial       (void);
-    void        WaitForIdle         (void);
-    void        PushLinkState       (uint8_t newstate);
-    void        PopLinkState        (void);
-    void        FatalError          (void);
-    void        FlushSerialInput    (void);
-    void        Resync              (void);
-	
-
-    //////////////////////////////////////////////////////////////
-    // A structure to hold up to MAX_GENIE_EVENTS events receive
-    // from the display
-    //
-    EventQueueStruct EventQueue;
-
-    //////////////////////////////////////////////////////////////
-    // Simple 5-deep stack for the link state, this allows
-    // DoEvents() to save the current state, receive a frame,
-    // then restore the state
-    //
-    uint8_t LinkStates[MAX_LINK_STATES];
-    //
-    // Stack pointer
-    //
-    uint8_t *LinkState;
-
-    //////////////////////////////////////////////////////////////
-    // Number of mS the GetChar() function will wait before
-    // giving up on the display
-    int Timeout;
-
-    //////////////////////////////////////////////////////////////
-    // Number of times we have had a timeout
-    int Timeouts;
-
-    //////////////////////////////////////////////////////////////
-    // Global error variable
-    int Error;
-
-
-    uint8_t    rxframe_count;
-
-    //////////////////////////////////////////////////////////////
-    // Number of fatal errors encountered
-    int FatalErrors;
-
-    Stream* deviceSerial;
-    Stream* debugSerial;
-
-    UserEventHandlerPtr UserHandler;
-    UserBytePtr UserByteReader;
-    UserDoubleBytePtr UserDoubleByteReader;
-
-};
 
 #ifndef TRUE
 #define TRUE    (1==1)

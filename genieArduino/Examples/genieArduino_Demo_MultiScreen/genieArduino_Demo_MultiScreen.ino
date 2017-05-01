@@ -1,13 +1,13 @@
-#include <genieArduino.h>
+#include <visiGenieSerial.h>
 
-// This Demo extends the genieArduino_Demo, by showing how to use more than 1 screen at a time, attached to an Arduino with 2+ Serial Ports.
+// This Demo extends the visiGenieSerial_Demo, by showing how to use more than 1 screen at a time, attached to an Arduino with 2+ Serial Ports.
 // This Demo uses the same WS4 Genie program on both displays, in this case, 2x uLCD-32PTU's, and an Arduino Mega.
 // NOTE: Both displays must be connected for this demo to function.
 
 // This Demo communicates with 2 4D Systems Displays, configured with ViSi-Genie, utilising the Genie Arduino Library - https://github.com/4dsystems/ViSi-Genie-Arduino-Library.
 // The display demo has a slider, a cool gauge, an LED Digits, a string box and a User LED.
 // The program receives messages from the Slider0 object on each display using the Reported Events. This is triggered each time the Slider changes on the display, and an event
-// is genereated and sent automatically. Reported Events originate from the On-Changed event from the slider itself, set in the Workshop4 software.
+// is generated and sent automatically. Reported Events originate from the On-Changed event from the slider itself, set in the Workshop4 software.
 // Coolgauge is written to using Write Object, and the String is updated using the Write String command, showing the version of the library.
 // The User LED is updated by the Arduino, by first doing a manual read of the User LED and then toggling it based on the state received back.
 

@@ -12,7 +12,7 @@
  * line below - Line 60, as it will prevent the demo from compiling.
  */
 
-#include <genieArduino.h>
+#include <visiGenieSerial.h>
 
 Genie genie;
 

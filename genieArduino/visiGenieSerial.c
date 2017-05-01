@@ -1,4 +1,4 @@
-/////////////////////// GenieArduino 06/10/2015 ///////////////////////
+/////////////////////// visiGenieSerial 06/10/2015 ///////////////////////
 //
 //      Library to utilise the 4D Systems Genie interface to displays
 //      that have been created using the Visi-Genie creator platform.
@@ -23,23 +23,23 @@
 //
 //      Copyright (c) 2012-2014 4D Systems Pty Ltd, Sydney, Australia
 /*********************************************************************
- * This file is part of genieArduino:
- *    genieArduino is free software: you can redistribute it and/or modify
+ * This file is part of visiGenieSerial:
+ *    visiGenieSerial is free software: you can redistribute it and/or modify
  *    it under the terms of the GNU Lesser General Public License as
  *    published by the Free Software Foundation, either version 3 of the
  *    License, or (at your option) any later version.
  *
- *    genieArduino is distributed in the hope that it will be useful,
+ *    visiGenieSerial is distributed in the hope that it will be useful,
  *    but WITHOUT ANY WARRANTY; without even the implied warranty of
  *    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *    GNU Lesser General Public License for more details.
  *
  *    You should have received a copy of the GNU Lesser General Public
- *    License along with genieArduino.
+ *    License along with visiGenieSerial.
  *    If not, see <http://www.gnu.org/licenses/>.
  *********************************************************************/
 //#include <Streaming.h>
-#include "genieArduino.h"
+#include "visiGenieSerial.h"
 #include <math.h>
 #include <string.h>
 
@@ -60,8 +60,40 @@
 //    return (int) &v - (__brkval == 0 ? (int) &__heap_start : (int) __brkval);
 //}
 
-Genie::Genie() {
-    // Pointer to the user's event handler function
+static void        FlushEventQueue     (void);
+static void        handleError         (void);
+static void        SetLinkState        (uint16_t newstate);
+static uint16_t    GetLinkState        (void);
+static bool        EnqueueEvent        (uint8_t * data);
+static uint8_t     Getchar             (void);
+static uint16_t    GetcharSerial       (void);
+static void        WaitForIdle         (void);
+static void        PushLinkState       (uint8_t newstate);
+static void        PopLinkState        (void);
+static void        FatalError          (void);
+static void        FlushSerialInput    (void);
+static void        Resync              (void);
+
+static EventQueueStruct EventQueue;
+static uint8_t LinkStates[MAX_LINK_STATES];
+static uint8_t *LinkState;
+static int Timeout;
+static int Timeouts;
+static int Error;
+static uint8_t    rxframe_count;
+static int FatalErrors;
+
+Stream* deviceSerial;
+Stream* debugSerial;
+
+static UserEventHandlerPtr UserHandler;
+static UserBytePtr UserByteReader;
+static UserDoubleBytePtr UserDoubleByteReader;
+static UserApiConfig *userConfig;
+
+void initGenieWithConfig (UserApiConfig *config) {
+
+    userConfig = config;
     UserHandler = NULL;
     UserByteReader = NULL;
     UserDoubleByteReader = NULL;

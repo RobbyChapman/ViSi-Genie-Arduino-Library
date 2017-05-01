@@ -1,4 +1,4 @@
-#include <genieArduino.h>
+#include <visiGenieSerial.h>
 
 // This Demo communicates with a 4D Systems Display, configured with ViSi-Genie, utilising the Genie Arduino Library - https://github.com/4dsystems/ViSi-Genie-Arduino-Library.
 // The display has a slider, a cool gauge, an LED Digits, a string box and a User LED.
