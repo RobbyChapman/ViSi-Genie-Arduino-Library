@@ -199,11 +199,11 @@ typedef void        (*UserDoubleBytePtr)(uint8_t, uint8_t);
 // User API functions
 // These function prototypes are the user API to the library
 //
-    void        initGenieWithConfig (UserApiConfig *config);
-    bool        ReadObject          (uint16_t object, uint16_t index);
-    uint16_t    WriteObject         (uint16_t object, uint16_t index, uint16_t data);
-    void        WriteContrast       (uint16_t value);
-    uint16_t    WriteStr            (uint16_t index, char *string);
+    void        genieInitWithConfig (UserApiConfig *config);
+    bool        genieReadObject          (uint16_t object, uint16_t index);
+    uint16_t    genieWriteObject         (uint16_t object, uint16_t index, uint16_t data);
+    void        genieWriteContrast       (uint16_t value);
+    uint16_t    genieWriteStr            (uint16_t index, char *string);
     /* These need to be ported. I'll get to them later
 	uint16_t	WriteStr			(uint16_t index, long n) ;
 	uint16_t	WriteStr			(uint16_t index, long n, int base) ;
@@ -220,24 +220,24 @@ typedef void        (*UserDoubleBytePtr)(uint8_t, uint8_t);
 	uint16_t	WriteStr			(uint16_t index, double n, int digits);
 	uint16_t	WriteStr			(uint16_t index, double n);
      */
-    uint16_t    WriteStrU           (uint16_t index, uint16_t *string);
-    bool        EventIs             (GenieFrame * e, uint8_t cmd, uint8_t object, uint8_t index);
-    uint16_t    GetEventData        (GenieFrame * e);
-    bool        DequeueEvent        (GenieFrame * buff);
-    uint16_t    DoEvents            (bool DoHandler);
-    void        AttachEventHandler  (UserEventHandlerPtr userHandler);
-    void        AttachMagicByteReader (UserBytePtr userHandler);
-    void        AttachMagicDoubleByteReader (UserDoubleBytePtr userHandler);
-    void        pulse               (int32_t pin);
-    void        assignDebugPort     (UserApiConfig *config);
+    uint16_t    genieWriteStrU           (uint16_t index, uint16_t *string);
+    bool        genieEventIs             (GenieFrame * e, uint8_t cmd, uint8_t object, uint8_t index);
+    uint16_t    genieGetEventData        (GenieFrame * e);
+    bool        genieDequeueEvent        (GenieFrame * buff);
+    uint16_t    genieDoEvents            (bool DoHandler);
+    void        genieAttachEventHandler  (UserEventHandlerPtr userHandler);
+    void        genieAttachMagicByteReader (UserBytePtr userHandler);
+    void        genieAttachMagicDoubleByteReader (UserDoubleBytePtr userHandler);
+    void        geniePulse               (int32_t pin);
+    void        genieAssignDebugPort     (UserApiConfig *config);
 
     // Genie Magic functions (ViSi-Genie Pro Only)
 
-    uint16_t    WriteMagicBytes     (uint16_t index, uint8_t *bytes, uint16_t len);
-    uint16_t    WriteMagicDBytes    (uint16_t index, uint16_t *bytes, uint16_t len);
+    uint16_t    genieWriteMagicBytes     (uint16_t index, uint8_t *bytes, uint16_t len);
+    uint16_t    genieWriteMagicDBytes    (uint16_t index, uint16_t *bytes, uint16_t len);
 
-    uint8_t     GetNextByte         (void);
-    uint16_t    GetNextDoubleByte   (void);
+    uint8_t     genieGetNextByte         (void);
+    uint16_t    genieGetNextDoubleByte   (void);
 
 #ifndef TRUE
 #define TRUE    (1==1)
