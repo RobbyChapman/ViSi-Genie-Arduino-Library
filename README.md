@@ -43,8 +43,7 @@ int main(void) {
     .millis = getMillis
   };
   
-  initGenie();
-  Begin(&userConfig);
+  initGenieWithConfig(&userConfig);
     ...
     ...
 ````
