@@ -40,7 +40,11 @@
  *********************************************************************/
 
 /* Is this an Arduino board? if so, set to 1. For other boards like nrf52, Tiva launchpad, MSP, set to 0 */
-#define ARDUINO_BASED 1
+#define ARDUINO_BASED 0
+/* TODO::I need to research this. I only see 4D test this condition in GetcharSerial, however I do not see any #define. 
+  I looked in the Arduino headers too with no luck. For now I will define it here. It may act some sort of 
+  differentiation between hardware serial and software serial within Arduino? */
+#define SERIAL
 /* If you are using an Arduino based board, or old school Wiring, include those headers, else skip */
 #if (ARDUINO_BASED == 1)
 	#if defined(ARDUINO) && ARDUINO >= 100
@@ -48,11 +52,15 @@
 	#else
 		#include "WProgram.h"
     #endif
+#else
+    /* Grabbed from Arduino headers for port */
+    #define lowByte(w) ((uint8_t) ((w) & 0xff))
+    #define highByte(w) ((uint8_t) ((w) >> 8))
 #endif
 
 #include <inttypes.h>
-
 #include <stdint.h>
+#include <stdbool.h>
 
 #ifndef visiGenieSerial_h
 #define visiGenieSerial_h
@@ -191,12 +199,13 @@ typedef void        (*UserDoubleBytePtr)(uint8_t, uint8_t);
 // User API functions
 // These function prototypes are the user API to the library
 //
-	void        initGenieWithConfig (UserApiConfig *config);
-    void        Begin               (Stream &serial);
+	void        initGenie           (void);
+    void        Begin               (UserApiConfig *config);
     bool        ReadObject          (uint16_t object, uint16_t index);
     uint16_t    WriteObject         (uint16_t object, uint16_t index, uint16_t data);
     void        WriteContrast       (uint16_t value);
     uint16_t    WriteStr            (uint16_t index, char *string);
+    /* These need to be ported. I'll get to them later
 	uint16_t	WriteStr			(uint16_t index, long n) ;
 	uint16_t	WriteStr			(uint16_t index, long n, int base) ;
 	uint16_t	WriteStr			(uint16_t index, unsigned long n) ;
@@ -210,17 +219,18 @@ typedef void        (*UserDoubleBytePtr)(uint8_t, uint8_t);
 	uint16_t	WriteStr			(uint16_t index, const __FlashStringHelper *ifsh);
 #endif
 	uint16_t	WriteStr			(uint16_t index, double n, int digits);
-	uint16_t	WriteStr			(uint16_t index, double n);	
+	uint16_t	WriteStr			(uint16_t index, double n);
+     */
     uint16_t    WriteStrU           (uint16_t index, uint16_t *string);
-    bool        EventIs             (genieFrame * e, uint8_t cmd, uint8_t object, uint8_t index);
-    uint16_t    GetEventData        (genieFrame * e);
-    bool        DequeueEvent        (genieFrame * buff);
-    uint16_t    DoEvents            (bool DoHandler = true);
+    bool        EventIs             (GenieFrame * e, uint8_t cmd, uint8_t object, uint8_t index);
+    uint16_t    GetEventData        (GenieFrame * e);
+    bool        DequeueEvent        (GenieFrame * buff);
+    uint16_t    DoEvents            (bool DoHandler);
     void        AttachEventHandler  (UserEventHandlerPtr userHandler);
     void        AttachMagicByteReader (UserBytePtr userHandler);
     void        AttachMagicDoubleByteReader (UserDoubleBytePtr userHandler);
-    void        pulse               (int pin);
-    void        assignDebugPort     (Stream &port);
+    void        pulse               (int32_t pin);
+    void        assignDebugPort     (UserApiConfig *config);
 
     // Genie Magic functions (ViSi-Genie Pro Only)
 

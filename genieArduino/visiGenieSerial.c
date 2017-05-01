@@ -38,7 +38,7 @@
  *    License along with visiGenieSerial.
  *    If not, see <http://www.gnu.org/licenses/>.
  *********************************************************************/
-//#include <Streaming.h>
+
 #include "visiGenieSerial.h"
 #include <math.h>
 #include <string.h>
@@ -48,17 +48,13 @@
 #define OCT 8
 #define BIN 2
 
-#if (ARDUINO >= 100)
-# include "Arduino.h" // for Arduino 1.0
-#else
-# include "WProgram.h" // for Arduino 23
+#if (ARDUINO_BASED == 1)
+  #if (ARDUINO >= 100)
+      # include "Arduino.h" // for Arduino 1.0
+  #else
+      # include "WProgram.h" // for Arduino 23
+  #endif
 #endif
-
-//int freeRam () {
-//    extern int __heap_start, *__brkval;
-//    int v;
-//    return (int) &v - (__brkval == 0 ? (int) &__heap_start : (int) __brkval);
-//}
 
 static void        FlushEventQueue     (void);
 static void        handleError         (void);
@@ -80,20 +76,19 @@ static uint8_t *LinkState;
 static int Timeout;
 static int Timeouts;
 static int Error;
-static uint8_t    rxframe_count;
+static uint8_t rxframe_count;
 static int FatalErrors;
 
-Stream* deviceSerial;
-Stream* debugSerial;
+UserApiConfig  *deviceSerial;
+UserApiConfig  *debugSerial;
 
 static UserEventHandlerPtr UserHandler;
 static UserBytePtr UserByteReader;
 static UserDoubleBytePtr UserDoubleByteReader;
 static UserApiConfig *userConfig;
 
-void initGenieWithConfig (UserApiConfig *config) {
+void initGenie(void) {
 
-    userConfig = config;
     UserHandler = NULL;
     UserByteReader = NULL;
     UserDoubleByteReader = NULL;
@@ -107,8 +102,8 @@ void initGenieWithConfig (UserApiConfig *config) {
     FatalErrors = 0;
 }
 
-void Genie::assignDebugPort(Stream &port) {
-    debugSerial = &port;
+void assignDebugPort(UserApiConfig *config) {
+    debugSerial = config;
 }
 
 ////////////////////// GetEventData ////////////////////////
@@ -120,7 +115,7 @@ void Genie::assignDebugPort(Stream &port) {
 // and stored the same so the user can't just access it as an int
 // directly from the structure.
 //
-uint16_t Genie::GetEventData (genieFrame * e) {
+uint16_t GetEventData (GenieFrame * e) {
     return  (e->reportObject.data_msb << 8) + e->reportObject.data_lsb;
 }
 
@@ -128,7 +123,7 @@ uint16_t Genie::GetEventData (genieFrame * e) {
 //
 // Read one byte from the serial device.  Blocking.
 //
-uint8_t Genie::GetNextByte() {
+uint8_t GetNextByte() {
     while (deviceSerial->available() < 1) {
         continue;
     }
@@ -140,7 +135,7 @@ uint8_t Genie::GetNextByte() {
 // Reads two bytes from the serial device and joins them into one
 // double byte.  Blocking.
 //
-uint16_t Genie::GetNextDoubleByte() {
+uint16_t GetNextDoubleByte() {
     uint16_t out;
     while (deviceSerial->available() < 1) {
         continue;
@@ -158,7 +153,7 @@ uint16_t Genie::GetNextDoubleByte() {
 // Returns:     TRUE if all the fields match the caller's parms
 //              FALSE if any of them don't
 //
-bool Genie::EventIs(genieFrame * e, uint8_t cmd, uint8_t object, uint8_t index) {
+bool EventIs(GenieFrame * e, uint8_t cmd, uint8_t object, uint8_t index) {
     return (e->reportObject.cmd == cmd &&
             e->reportObject.object == object &&
             e->reportObject.index == index);
@@ -169,18 +164,18 @@ bool Genie::EventIs(genieFrame * e, uint8_t cmd, uint8_t object, uint8_t index) 
 // Wait for the link to become idle or for the timeout period,
 // whichever comes first.
 //
-void Genie::WaitForIdle (void) {
+void WaitForIdle (void) {
     uint16_t do_event_result;
-    long timeout = millis() + Timeout;
+    long timeout = userConfig->millis() + Timeout;
 
-    for ( ; millis() < timeout;) {
+    for ( ; userConfig->millis() < timeout;) {
         do_event_result = DoEvents(false);
 
         // if there was a character received from the
         // display restart the timeout because doEvents
         // is in the process of receiving something
         if (do_event_result == GENIE_EVENT_RXCHAR) {
-            timeout = millis() + Timeout;
+            timeout = userConfig->millis() + Timeout;
         }
 
         if (GetLinkState() == GENIE_LINK_IDLE) {
@@ -198,7 +193,7 @@ void Genie::WaitForIdle (void) {
 // Push a link state onto a FILO stack
 //
 int linkCount = 0;
-void Genie::PushLinkState (uint8_t newstate) {
+void PushLinkState (uint8_t newstate) {
     if (linkCount >= MAX_LINK_STATES) {
         Resync();
     }
@@ -213,7 +208,7 @@ void Genie::PushLinkState (uint8_t newstate) {
 //
 // Pop a link state from a FILO stack
 //
-void Genie::PopLinkState (void) {
+void PopLinkState (void) {
     //if (debugSerial) { *debugSerial << "PopLinkState\n"; }
     if (LinkState > &LinkStates[0]) {
         *LinkState = 0xFF;
@@ -226,7 +221,7 @@ void Genie::PopLinkState (void) {
 //
 // This is the heart of the Genie comms state machine.
 //
-uint16_t Genie::DoEvents (bool DoHandler) {
+uint16_t DoEvents (bool DoHandler) {
     uint8_t c;
     static uint8_t  rx_data[6];
     static uint8_t  checksum = 0;
@@ -459,7 +454,7 @@ uint16_t Genie::DoEvents (bool DoHandler) {
 //          The char if there was one to get
 // Sets:    Error with any errors encountered
 //
-uint8_t Genie::Getchar() {
+uint8_t Getchar() {
     uint16_t result;
     Error = ERROR_NONE;
     return GetcharSerial();
@@ -470,7 +465,7 @@ uint8_t Genie::Getchar() {
 // Return ERROR_NOCHAR if no character or the char in the lower
 // byte if there is.
 //
-uint16_t Genie::GetcharSerial (void) {
+uint16_t GetcharSerial (void) {
 #ifdef SERIAL
 
     if (deviceSerial->available() == 0) {
@@ -480,12 +475,13 @@ uint16_t Genie::GetcharSerial (void) {
 
     return (uint16_t) deviceSerial->read() & 0xFF;
 #endif
+  return 0;
 }
 
 
 /////////////////// Genie::FatalError ///////////////////////
 //
-void Genie::FatalError(void) {
+void FatalError(void) {
     if (FatalErrors++ > MAX_GENIE_FATALS) {
         //      *LinkState = GENIE_LINK_SHDN;
         //      Error = ERROR_NODISPLAY;
@@ -497,7 +493,7 @@ void Genie::FatalError(void) {
 // Removes and discards all characters from the currently
 // used serial port's Rx buffer.
 //
-void Genie::FlushSerialInput(void) {
+void FlushSerialInput(void) {
     while (deviceSerial->read() >= 0);
 }
 
@@ -509,8 +505,8 @@ void Genie::FlushSerialInput(void) {
 //
 // Untested, will need work I'm sure.
 //
-void Genie::Resync (void) {
-    //for (long timeout = millis() + RESYNC_PERIOD ; millis() < timeout;) {};
+void Resync (void) {
+    //for (long timeout = userConfig->millis() + RESYNC_PERIOD ; userConfig->millis() < timeout;) {};
     FlushSerialInput();
     FlushEventQueue();
     Timeouts = 0;
@@ -524,7 +520,7 @@ void Genie::Resync (void) {
 // So far really just a debugging aid, but can be enhanced to
 // help recover from errors.
 //
-void Genie::handleError (void) {
+void handleError (void) {
     //if (debugSerial) { *debugSerial << "Handle Error Called!\n"; }
 }
 
@@ -532,7 +528,7 @@ void Genie::handleError (void) {
 //
 // Reset all the event queue variables and start from scratch.
 //
-void Genie::FlushEventQueue(void) {
+void FlushEventQueue(void) {
     EventQueue.rd_index = 0;
     EventQueue.wr_index = 0;
     EventQueue.n_events = 0;
@@ -543,12 +539,12 @@ void Genie::FlushEventQueue(void) {
 // Copy the bytes from a queued input event to a buffer supplied
 // by the caller.
 //
-// Parms:   genieFrame * buff, a pointer to the user's buffer
+// Parms:   GenieFrame * buff, a pointer to the user's buffer
 //
 // Returns: TRUE if there was an event to copy
 //          FALSE if not
 //
-bool Genie::DequeueEvent(genieFrame * buff) {
+bool DequeueEvent(GenieFrame * buff) {
     if (EventQueue.n_events > 0) {
         memcpy (buff, &EventQueue.frames[EventQueue.rd_index],
                 GENIE_FRAME_SIZE);
@@ -573,7 +569,7 @@ bool Genie::DequeueEvent(genieFrame * buff) {
 //          FALSE if not
 // Sets:    ERROR_REPLY_OVR if there was no room in the queue
 //
-bool Genie::EnqueueEvent (uint8_t * data) {
+bool EnqueueEvent (uint8_t * data) {
     if (EventQueue.n_events < MAX_GENIE_EVENTS - 2) {
         int i, j ;
         bool fnd=false ;
@@ -617,7 +613,7 @@ bool Genie::EnqueueEvent (uint8_t * data) {
 // course by DoEvents() and subsequently by the user's event
 // handler.
 //
-bool Genie::ReadObject (uint16_t object, uint16_t index) {
+bool ReadObject (uint16_t object, uint16_t index) {
     uint8_t checksum;
     // Discard any pending reply frames
     //FlushEventQueue();    // Removed due to preventing more than 2 readObjects being queued
@@ -647,7 +643,7 @@ bool Genie::ReadObject (uint16_t object, uint16_t index) {
 //      GENIE_LINK_RXEVENT      4 // receiving an event frame
 //      GENIE_LINK_SHDN         5
 //
-void Genie::SetLinkState (uint16_t newstate) {
+void SetLinkState (uint16_t newstate) {
     *LinkState = newstate;
 
     if (newstate == GENIE_LINK_RXREPORT || \
@@ -660,7 +656,7 @@ void Genie::SetLinkState (uint16_t newstate) {
 //
 // Get the current logical state of the link to the display.
 //
-uint16_t Genie::GetLinkState (void) {
+uint16_t GetLinkState (void) {
     return *LinkState;
 }
 
@@ -668,7 +664,7 @@ uint16_t Genie::GetLinkState (void) {
 //
 // Write data to an object on the display
 //
-uint16_t Genie::WriteObject (uint16_t object, uint16_t index, uint16_t data) {
+uint16_t WriteObject (uint16_t object, uint16_t index, uint16_t data) {
     uint16_t msb, lsb ;
     uint8_t checksum ;
     WaitForIdle();
@@ -708,7 +704,7 @@ uint16_t Genie::WriteObject (uint16_t object, uint16_t index, uint16_t data) {
 //      values from 0 to 15 are valid. 0 or 1 for most displays
 //      and 0 to 15 for the uLCD-43, uLCD-70, uLCD-35, uLCD-220RD
 //
-void Genie::WriteContrast (uint16_t value) {
+void WriteContrast (uint16_t value) {
     unsigned int checksum ;
     WaitForIdle();
     deviceSerial->write(GENIE_WRITE_CONTRAST) ;
@@ -724,7 +720,7 @@ void Genie::WriteContrast (uint16_t value) {
 // Write a string to the display (ASCII)
 // ASCII characters are 1 byte each
 //
-uint16_t Genie::WriteStr (uint16_t index, char *string) {
+uint16_t WriteStr (uint16_t index, char *string) {
     char *p;
     unsigned int checksum;
     int len = strlen (string);
@@ -777,16 +773,18 @@ uint16_t Genie::WriteStr(uint16_t index, const __FlashStringHelper *ifsh){
 }
 #endif
 
-uint16_t Genie::WriteStr(uint16_t index, const String &s){
+#if (ARDUINO_BASED == 1)
+uint16_t WriteStr(uint16_t index, const String &s){
 	//s.c_str(), s.length()
 	int len = s.length();
 	char arr[len + 1];
 	s.toCharArray(arr,len + 1);
 	WriteStr(index, arr);
-	return 0;	
+	return 0;
 }
+#endif
 
-
+/* I need to port these later on. Use existing Arduino writeStr demo for testing
 uint16_t Genie::WriteStr (uint16_t index, long n) { 
 	char buf[8 * sizeof(long) + 1]; // Assumes 8-bit chars plus zero byte.
 	char *str = &buf[sizeof(buf) - 1];
@@ -923,7 +921,6 @@ uint16_t Genie::WriteStr (uint16_t index, unsigned n, int base) {
 	return 0;
 }
 
-
 uint16_t Genie::WriteStr (uint16_t index, double number, int digits) { 
 	char buf[8 * sizeof(long) + 1]; // Assumes 8-bit chars plus zero byte.
 	char *str = &buf[sizeof(buf) - 1];
@@ -983,13 +980,13 @@ uint16_t Genie::WriteStr (uint16_t index, double n){
 	WriteStr(index, n, 2);
 
 }
-
+*/
 /////////////////////// WriteStrU ////////////////////////
 //
 // Write a string to the display (Unicode)
 // Unicode characters are 2 bytes each
 //
-uint16_t Genie::WriteStrU (uint16_t index, uint16_t *string) {
+uint16_t WriteStrU (uint16_t index, uint16_t *string) {
     uint16_t *p;
     unsigned int checksum;
     int len = 0;
@@ -1029,7 +1026,7 @@ uint16_t Genie::WriteStrU (uint16_t index, uint16_t *string) {
 // "Attaches" a pointer to the users event handler by writing
 // the pointer into the variable used by doEVents()
 //
-void Genie::AttachEventHandler (UserEventHandlerPtr handler) {
+void AttachEventHandler (UserEventHandlerPtr handler) {
     UserHandler = handler;
 }
 
@@ -1038,7 +1035,7 @@ void Genie::AttachEventHandler (UserEventHandlerPtr handler) {
 // "Attaches" a pointer to a user's function for receiving
 // GenieMagic byte reports.
 //
-void Genie::AttachMagicByteReader(UserBytePtr handler) {
+void AttachMagicByteReader(UserBytePtr handler) {
     UserByteReader = handler;
 }
 
@@ -1047,7 +1044,7 @@ void Genie::AttachMagicByteReader(UserBytePtr handler) {
 // "Attaches" a pointer to a user's function for receiving
 // GenieMagic doublebyte reports.
 //
-void Genie::AttachMagicDoubleByteReader(UserDoubleBytePtr handler) {
+void AttachMagicDoubleByteReader(UserDoubleBytePtr handler) {
     UserDoubleByteReader = handler;
 }
 
@@ -1069,8 +1066,8 @@ void Genie::AttachMagicDoubleByteReader(UserDoubleBytePtr handler) {
 //  void Begin (Stream &serial)
 //
 
-void Genie::Begin (Stream &serial) {
-    deviceSerial = &serial;
+void Begin (UserApiConfig *config) {
+    deviceSerial = config;
     PushLinkState(GENIE_LINK_IDLE);
     FlushEventQueue();
 }
@@ -1079,7 +1076,7 @@ void Genie::Begin (Stream &serial) {
 //
 // Write an array of bytes to a Magic object
 //
-uint16_t Genie::WriteMagicBytes (uint16_t index, uint8_t *bytes, uint16_t len) {
+uint16_t WriteMagicBytes (uint16_t index, uint8_t *bytes, uint16_t len) {
     unsigned int checksum;
 
     if (len > 255) {
@@ -1108,7 +1105,7 @@ uint16_t Genie::WriteMagicBytes (uint16_t index, uint8_t *bytes, uint16_t len) {
 //
 // Write an array of 16-bit short values to a Magic object
 //
-uint16_t Genie::WriteMagicDBytes (uint16_t index, uint16_t *shorts, uint16_t len) {
+uint16_t WriteMagicDBytes (uint16_t index, uint16_t *shorts, uint16_t len) {
     unsigned int checksum;
 
     if (len > 255) {
