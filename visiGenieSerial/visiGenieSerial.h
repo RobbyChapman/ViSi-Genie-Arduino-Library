@@ -199,8 +199,7 @@ typedef void        (*UserDoubleBytePtr)(uint8_t, uint8_t);
 // User API functions
 // These function prototypes are the user API to the library
 //
-	void        initGenie           (void);
-    void        Begin               (UserApiConfig *config);
+    void        initGenieWithConfig (UserApiConfig *config);
     bool        ReadObject          (uint16_t object, uint16_t index);
     uint16_t    WriteObject         (uint16_t object, uint16_t index, uint16_t data);
     void        WriteContrast       (uint16_t value);

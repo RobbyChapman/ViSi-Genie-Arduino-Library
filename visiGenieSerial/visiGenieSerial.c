@@ -84,7 +84,7 @@ static UserEventHandlerPtr UserHandler;
 static UserBytePtr UserByteReader;
 static UserDoubleBytePtr UserDoubleByteReader;
 
-void initGenie(void) {
+void initGenieWithConfig(UserApiConfig *config) {
 
     UserHandler = NULL;
     UserByteReader = NULL;
@@ -97,6 +97,9 @@ void initGenie(void) {
     Error = ERROR_NONE;
     rxframe_count = 0;
     FatalErrors = 0;
+    deviceSerial = config;
+    PushLinkState(GENIE_LINK_IDLE);
+    FlushEventQueue();
 }
 
 void assignDebugPort(UserApiConfig *config) {
@@ -1043,30 +1046,6 @@ void AttachMagicByteReader(UserBytePtr handler) {
 //
 void AttachMagicDoubleByteReader(UserDoubleBytePtr handler) {
     UserDoubleByteReader = handler;
-}
-
-//////////////////////// deviceSerial->read //////////////////////////
-//
-// Get a character from the selected Genie serial port
-//
-// Returns: ERROR_NOHANDLER if an Rx handler has not
-//              been defined
-//          ERROR_NOCHAR if no bytes have beeb received
-//          The char if there was one to get
-// Sets:    Error with any errors encountered
-//
-
-
-//////////////////////////////////// Setup /////////////////////////////////////////
-//
-//  Send a reference to a hardware serial port directly
-//  void Begin (Stream &serial)
-//
-
-void Begin (UserApiConfig *config) {
-    deviceSerial = config;
-    PushLinkState(GENIE_LINK_IDLE);
-    FlushEventQueue();
 }
 
 /////////////////////// WriteMagicBytes ////////////////////////
