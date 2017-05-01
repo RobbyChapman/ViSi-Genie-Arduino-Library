@@ -78,14 +78,11 @@ static int Timeouts;
 static int Error;
 static uint8_t rxframe_count;
 static int FatalErrors;
-
-UserApiConfig  *deviceSerial;
-UserApiConfig  *debugSerial;
-
+static UserApiConfig  *deviceSerial;
+static UserApiConfig  *debugSerial;
 static UserEventHandlerPtr UserHandler;
 static UserBytePtr UserByteReader;
 static UserDoubleBytePtr UserDoubleByteReader;
-static UserApiConfig *userConfig;
 
 void initGenie(void) {
 
@@ -166,16 +163,16 @@ bool EventIs(GenieFrame * e, uint8_t cmd, uint8_t object, uint8_t index) {
 //
 void WaitForIdle (void) {
     uint16_t do_event_result;
-    long timeout = userConfig->millis() + Timeout;
+    long timeout = deviceSerial->millis() + Timeout;
 
-    for ( ; userConfig->millis() < timeout;) {
+    for ( ; deviceSerial->millis() < timeout;) {
         do_event_result = DoEvents(false);
 
         // if there was a character received from the
         // display restart the timeout because doEvents
         // is in the process of receiving something
         if (do_event_result == GENIE_EVENT_RXCHAR) {
-            timeout = userConfig->millis() + Timeout;
+            timeout = deviceSerial->millis() + Timeout;
         }
 
         if (GetLinkState() == GENIE_LINK_IDLE) {

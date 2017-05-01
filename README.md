@@ -1,3 +1,59 @@
+This branch has been created in order to add additional board support to [Visi-Genie-Arduino-Library](https://github.com/4dsystems/ViSi-Genie-Arduino-Library) by 
+4DSystems. The goal is to port their C++ library to C, adding a generic interface for peripheral based functions. For 
+example, sending a character over UART is handled different based on the vendor:
+
+
+**Arduino:**   _Serial.Write_
+
+**TI:**        _ROM_UARTCharPut()_
+ 
+**Nordic:**    _app_uart_put()_
+
+The application specific calls can be configured outside the library by the use of the UserApiConfig struct. For 
+example, the TM4C129 Launchpad by TI:
+
+````
+static bool uartAvailHandler(void) {
+  
+  return ROM_UARTCharsAvail(UART_BASE);
+}
+
+static uint8_t uartReadHandler(void){
+  
+  return (uint8_t)ROM_UARTCharGet(UART_BASE);
+}
+
+static void uartWriteHandler(uint32_t val) {
+  
+  ROM_UARTCharPut(UART_BASE,(uint8_t)val);
+}
+
+static uint32_t getMillis(void) {
+  
+  return ROM_HibernateRTCGet() * MILLI_PER_SEC;
+}
+
+int main(void) {
+    ...
+    ...
+  static UserApiConfig userConfig = {
+    .available = uartAvailHandler,
+    .read =  uartReadHandler,
+    .write = uartWriteHandler,
+    .millis = getMillis
+  };
+  
+  initGenie();
+  Begin(&userConfig);
+    ...
+    ...
+````
+
+
+For more information on 4DSystems Visi-Genie-Arduino-Library, see below:
+
+<br> <br> <br> <br>
+
 ![image](http://www.4dsystems.com.au/imagenes/header.png)
 
 ViSi-Genie-Arduino-Library - NEW VERSION - Updated 10-OCT-2015
