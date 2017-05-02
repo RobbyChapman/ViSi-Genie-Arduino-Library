@@ -49,6 +49,26 @@ int main(void) {
 ````
 
 
+TODO
+
+Fix Arduino example
+
+Add Nordic example
+
+Add Makefile
+
+
+### TODO
+
+- [x] Port to c
+- [x] Add TI example in IAR
+- [ ] Fix Arduino example
+- [x] Add Nordic example
+- [ ] Add Makefile
+- [ ] Add STM32 example
+
+<br><br>
+
 For more information on 4DSystems Visi-Genie-Arduino-Library, see below:
 
 <br> <br> <br> <br>
