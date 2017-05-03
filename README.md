@@ -15,13 +15,13 @@ This branch has been created in order to add additional board support to [Visi-G
 example, sending a character over UART is handled different based on the vendor:
 
 
-**Arduino:**    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; _Serial.Write_
+**Arduino:**    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; `_Serial.Write_`
 
-**TI:**        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  _ROM_UARTCharPut()_
+**TI:**        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  `_ROM_UARTCharPut()_`
  
-**Nordic:**    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; _app_uart_put()_
+**Nordic:**    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; `_app_uart_put()_`
 
-**STM**       &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; _HAL_UART_Transmit_
+**STM**       &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; `_HAL_UART_Transmit_`
 
 The application specific calls can be configured outside the library by the use of the UserApiConfig struct. For 
 example, the TM4C129 Launchpad by TI:
